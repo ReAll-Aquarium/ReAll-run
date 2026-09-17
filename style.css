@@ -1,0 +1,181 @@
+body {
+  margin: 0;
+  background: #b8e8f2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: sans-serif;
+}
+
+#game {
+  width: 800px;
+  height: 400px;
+  background: #6ac6d8;
+  position: relative;
+  overflow: hidden;
+  border: 4px solid #174c63;
+}
+
+#discus {
+  width: 60px;
+  height: 60px;
+  background: #245c68;
+  position: absolute;
+  left: 100px;
+  bottom: 95px;
+  border-radius: 50%;
+}
+
+#ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: #174c63;
+}
+
+#rock,
+.rock {
+  width: 50px;
+  height: 50px;
+  background: #38545c;
+  position: absolute;
+  left: 800px;
+  bottom: 60px;
+  border-radius: 10px 10px 3px 3px;
+}
+
+#net,
+.net {
+  width: 72px;
+  height: 60px;
+  position: absolute;
+  left: 800px;
+  bottom: 185px;
+  background-color: #4f8f55;
+  background-image:
+    linear-gradient(
+      rgba(20, 70, 30, 0.7) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(20, 70, 30, 0.7) 1px,
+      transparent 1px
+    );
+  background-size: 10px 10px;
+  z-index: 5;
+}
+
+#plant,
+.plant {
+  width: 70px;
+  height: 100px;
+  background: #397a45;
+  position: absolute;
+  left: 1100px;
+  bottom: 60px;
+  border-radius: 35px 35px 5px 5px;
+  z-index: 4;
+}
+
+#food,
+.food {
+  width: 40px;
+  height: 40px;
+  background: #f5d76e;
+  border-radius: 50%;
+  position: absolute;
+  left: -1000px;
+  z-index: 6;
+}
+
+#pauseButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  color: #222;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+#pauseButton:hover {
+  background: white;
+}
+
+#startScreen {
+  position: absolute;
+  inset: 0;
+  background: #6ac6d8;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gameTitle {
+  font-size: 52px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.gameSubtitle {
+  font-size: 20px;
+  color: white;
+  margin-bottom: 35px;
+}
+
+#playButton {
+  width: 180px;
+  height: 60px;
+  border: none;
+  border-radius: 12px;
+  background: white;
+  color: #174c63;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+#playButton:hover {
+  transform: scale(1.05);
+}
+
+#playButton:active {
+  transform: scale(0.98);
+}
+
+#score {
+  position: absolute;
+  top: 15px;
+  left: 18px;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 20;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+#gameOverScore {
+  display: none;
+  color: white;
+  font-size: 26px;
+  font-weight: bold;
+  margin-top: -15px;
+  margin-bottom: 25px;
+}
