@@ -120,6 +120,93 @@ function spawn() {
 
   const type = randomType();
 
+
+  // ==========================
+  // SÍŤ MŮŽE PŘEKRÝVAT FOOD
+  // ==========================
+
+  if (type !== "net") {
+
+    const obstacleWidth =
+      type === "plant"
+        ? plant.offsetWidth
+        : rock.offsetWidth;
+
+    const obstacleHeight =
+      type === "plant"
+        ? plant.offsetHeight
+        : rock.offsetHeight;
+
+    const obstacleBottom =
+      type === "plant"
+        ? parseFloat(
+            getComputedStyle(plant).bottom
+          )
+        : parseFloat(
+            getComputedStyle(rock).bottom
+          );
+
+    const obstacleTop =
+      obstacleBottom +
+      obstacleHeight;
+
+    const margin = 80;
+
+
+    // ==========================
+    // KONTROLA EXISTUJÍCÍHO FOODU
+    // ==========================
+
+    for (const f of foods) {
+
+      const foodLeft =
+        f.position;
+
+      const foodRight =
+        foodLeft + 40;
+
+      const foodBottom =
+        parseFloat(
+          getComputedStyle(
+            f.element
+          ).bottom
+        );
+
+      const foodTop =
+        foodBottom + 40;
+
+
+      const obstacleLeft =
+        850;
+
+      const obstacleRight =
+        obstacleLeft +
+        obstacleWidth;
+
+
+      const overlap =
+        obstacleLeft <
+          foodRight + margin &&
+        obstacleRight >
+          foodLeft - margin &&
+        obstacleBottom <
+          foodTop + margin &&
+        obstacleTop >
+          foodBottom - margin;
+
+
+      if (overlap) {
+
+        return false;
+      }
+    }
+  }
+
+
+  // ==========================
+  // VYTVOŘENÍ PŘEKÁŽKY
+  // ==========================
+
   const template = {
     rock,
     net,
@@ -136,12 +223,17 @@ function spawn() {
   element.style.left =
     "850px";
 
+  element.style.transform =
+    "translateX(0px)";
+
   game.appendChild(element);
 
   obstacles.push({
     element: element,
     position: 850
   });
+
+  return true;
 }
 
 
@@ -168,13 +260,13 @@ function spawnFood() {
 
 
   // ==========================
-  // KONTROLA PROTI PŘEKÁŽKÁM
+  // HLEDÁNÍ BEZPEČNÉ POZICE
   // ==========================
 
   let safe = false;
   let attempts = 0;
 
-  while (!safe && attempts < 20) {
+  while (!safe && attempts < 30) {
 
     safe = true;
 
@@ -187,34 +279,19 @@ function spawnFood() {
         ? 220
         : 100;
 
-    for (const obstacle of obstacles) {
 
-      const obstacleLeft =
-        obstacle.position;
+    // ==========================
+    // KONTROLA KAŽDÉHO KUSU FOODU
+    // ==========================
 
-      const obstacleRight =
-        obstacle.position +
-        obstacle.element.offsetWidth;
-
-      const obstacleBottom =
-        parseFloat(
-          getComputedStyle(
-            obstacle.element
-          ).bottom
-        );
-
-      const obstacleTop =
-        obstacleBottom +
-        obstacle.element.offsetHeight;
+    for (let i = 0; i < count; i++) {
 
       const foodLeft =
-        startPosition;
+        startPosition +
+        i * foodSpacing;
 
       const foodRight =
-        startPosition +
-        (count - 1) *
-        foodSpacing +
-        40;
+        foodLeft + 40;
 
       const foodBottom =
         bottom;
@@ -222,25 +299,77 @@ function spawnFood() {
       const foodTop =
         bottom + 40;
 
-      const margin = 40;
 
-      const overlap =
-        foodLeft <
-          obstacleRight + margin &&
-        foodRight >
-          obstacleLeft - margin &&
-        foodBottom <
-          obstacleTop + margin &&
-        foodTop >
-          obstacleBottom - margin;
+      for (const obstacle of obstacles) {
 
-      if (overlap) {
+        // Síť může food překrývat
+        if (
+          obstacle.element.classList.contains("net")
+        ) {
+          continue;
+        }
 
-        safe = false;
+
+        // ==========================
+        // POZICE PŘEKÁŽKY
+        // ==========================
+
+        const obstacleLeft =
+          obstacle.position;
+
+        const obstacleRight =
+          obstacle.position +
+          obstacle.element.offsetWidth;
+
+        const obstacleBottom =
+          parseFloat(
+            getComputedStyle(
+              obstacle.element
+            ).bottom
+          );
+
+        const obstacleTop =
+          obstacleBottom +
+          obstacle.element.offsetHeight;
+
+
+        // ==========================
+        // OCHRANNÁ VZDÁLENOST
+        // ==========================
+
+        const margin = 80;
+
+
+        // ==========================
+        // KOLIZE
+        // ==========================
+
+        const overlap =
+          foodLeft <
+            obstacleRight + margin &&
+          foodRight >
+            obstacleLeft - margin &&
+          foodBottom <
+            obstacleTop + margin &&
+          foodTop >
+            obstacleBottom - margin;
+
+
+        if (overlap) {
+
+          safe = false;
+
+          break;
+        }
+      }
+
+
+      if (!safe) {
 
         break;
       }
     }
+
 
     attempts++;
   }
@@ -264,7 +393,10 @@ function spawnFood() {
       i * foodSpacing;
 
     element.style.left =
-      position + "px";
+      "0px";
+
+    element.style.transform =
+      `translateX(${position}px)`;
 
     element.style.bottom =
       bottom + "px";
@@ -473,7 +605,6 @@ function moveObstacles() {
   const dt =
     (now - lastTime) / 1000;
 
-
   lastTime = now;
 
 
@@ -483,13 +614,17 @@ function moveObstacles() {
 
   if (now >= nextSpawn) {
 
-    spawn();
+    const spawned =
+      spawn();
 
-    nextSpawn =
-      now +
-      minSpawn +
-      Math.random() *
-      (maxSpawn - minSpawn);
+    if (spawned) {
+
+      nextSpawn =
+        now +
+        minSpawn +
+        Math.random() *
+        (maxSpawn - minSpawn);
+    }
   }
 
 
@@ -502,8 +637,8 @@ function moveObstacles() {
     o.position -=
       speed * dt;
 
-    o.element.style.left =
-      o.position + "px";
+    o.element.style.transform =
+      `translateX(${o.position - 850}px)`;
   });
 
 
@@ -590,8 +725,8 @@ function moveFood() {
     f.position -=
       speed * dt;
 
-    f.element.style.left =
-      f.position + "px";
+    f.element.style.transform =
+      `translateX(${f.position}px)`;
   });
 
 
@@ -711,20 +846,35 @@ function checkCollision() {
 
       if (collision) {
 
-  if (o.element.classList.contains("rock")) {
-    endGame("Au! Terčovec narazil do kamene!");
-  }
+        if (
+          o.element.classList.contains("rock")
+        ) {
 
-  else if (o.element.classList.contains("plant")) {
-    endGame("Terčovec se schoval mezi rostliny a odmítá vyplout.");
-  }
+          endGame(
+            "Au! Terčovec narazil do kamene!"
+          );
+        }
 
-  else if (o.element.classList.contains("net")) {
-    endGame("Terčovec je v pasti!");
-  }
+        else if (
+          o.element.classList.contains("plant")
+        ) {
 
-  break;
-}
+          endGame(
+            "Terčovec se schoval mezi rostliny a odmítá vyplout."
+          );
+        }
+
+        else if (
+          o.element.classList.contains("net")
+        ) {
+
+          endGame(
+            "Terčovec je v pasti!"
+          );
+        }
+
+        break;
+      }
     }
   }
 
@@ -884,15 +1034,22 @@ function endGame(message) {
   startScreen.style.display =
     "flex";
 
-  document.querySelector(
-    ".gameTitle"
-  ).textContent =
+  const gameTitle =
+    document.querySelector(".gameTitle");
+
+  gameTitle.textContent =
     "GAME OVER";
+
+  gameTitle.classList.add(
+    "gameOver"
+  );
+
 
   document.querySelector(
     ".gameSubtitle"
   ).style.display =
     "none";
+
 
   gameOverScore.textContent =
     "SKÓRE: " + finalScore;
@@ -900,8 +1057,10 @@ function endGame(message) {
   gameOverScore.style.display =
     "block";
 
+
   alert(message);
-  
+
+
   playButton.textContent =
     "HRÁT ZNOVU";
 
@@ -931,16 +1090,16 @@ function togglePause() {
   paused = !paused;
 
 
-  if (paused) {
+if (paused) {
 
-    pauseButton.textContent =
-      "▶";
+  pauseButton.innerHTML =
+    '<span class="playIcon"></span>';
 
-    pauseButton.setAttribute(
-      "aria-label",
-      "Pokračovat"
-    );
-  }
+  pauseButton.setAttribute(
+    "aria-label",
+    "Pokračovat"
+  );
+}
 
   else {
 
@@ -950,8 +1109,8 @@ function togglePause() {
     lastFoodTime =
       performance.now();
 
-    pauseButton.textContent =
-      "Ⅱ";
+    pauseButton.innerHTML =
+  '<span class="pauseIcon"></span>';
 
     pauseButton.setAttribute(
       "aria-label",
@@ -1100,10 +1259,16 @@ playButton.addEventListener(
     // OBNOVENÍ START OBRAZOVKY
     // ==========================
 
-    document.querySelector(
-      ".gameTitle"
-    ).textContent =
-      "ReAll Run";
+    const gameTitle =
+      document.querySelector(".gameTitle");
+
+    gameTitle.innerHTML =
+      '<span class="reallText">ReAll</span><span class="runText"> Run</span>';
+
+    gameTitle.classList.remove(
+      "gameOver"
+    );
+
 
     document.querySelector(
       ".gameSubtitle"
@@ -1139,8 +1304,8 @@ playButton.addEventListener(
     // PAUZA
     // ==========================
 
-    pauseButton.textContent =
-      "Ⅱ";
+    pauseButton.innerHTML =
+  '<span class="pauseIcon"></span>';
 
     pauseButton.setAttribute(
       "aria-label",
