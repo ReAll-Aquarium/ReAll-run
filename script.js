@@ -1,4 +1,6 @@
 const game = document.getElementById("game");
+const gameViewport = document.getElementById("gameViewport");
+
 const discus = document.getElementById("discus");
 const rock = document.getElementById("rock");
 const net = document.getElementById("net");
@@ -8,18 +10,22 @@ const food = document.getElementById("food");
 const startScreen = document.getElementById("startScreen");
 const playButton = document.getElementById("playButton");
 const pauseButton = document.getElementById("pauseButton");
+const fullscreenButton = document.getElementById("fullscreenButton");
+
 const scoreDisplay = document.getElementById("score");
 const gameOverScore = document.getElementById("gameOverScore");
 
 
-// ==========================
-// NASTAVENÍ HRY
-// ==========================
+/* ==========================
+   NASTAVENÍ HRY
+   ========================== */
+
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 400;
 
 const groundHeight = 95;
 
 const jumpHeight = 110;
-
 const ascentTime = 310;
 const descentTime = 280;
 
@@ -28,10 +34,14 @@ const speed = 550;
 const minSpawn = 650;
 const maxSpawn = 1000;
 
+const foodValue = 3;
+const minFoodCount = 1;
+const maxFoodCount = 5;
 
-// ==========================
-// STAV HRY
-// ==========================
+
+/* ==========================
+   STAV HRY
+   ========================== */
 
 let started = false;
 let gameOverState = false;
@@ -42,9 +52,9 @@ let scoreStartTime = 0;
 let bonusScore = 0;
 
 
-// ==========================
-// STAV SKOKU
-// ==========================
+/* ==========================
+   STAV SKOKU
+   ========================== */
 
 let jumping = false;
 let holding = false;
@@ -56,156 +66,105 @@ let jumpStartTime = 0;
 let descentStartTime = 0;
 
 
-// ==========================
-// PŘEKÁŽKY
-// ==========================
+/* ==========================
+   OBJEKTY
+   ========================== */
 
 let obstacles = [];
+let foods = [];
 
 let nextSpawn = 0;
 let lastTime = 0;
 
-
-// ==========================
-// KRMENÍ
-// ==========================
-
-let foods = [];
-
 let nextFoodSpawn = 0;
 let lastFoodTime = 0;
 
-const foodValue = 3;
 
-const minFoodCount = 1;
-const maxFoodCount = 5;
-
-
-// ==========================
-// SKRYTÍ ŠABLON
-// ==========================
+/* ==========================
+   SKRYTÍ ŠABLON
+   ========================== */
 
 rock.style.left = "-1000px";
 net.style.left = "-1000px";
 plant.style.left = "-1000px";
 
-discus.style.bottom = y + "px";
+discus.style.bottom = `${y}px`;
 
 
-// ==========================
-// NÁHODNÝ TYP PŘEKÁŽKY
-// ==========================
+/* ==========================
+   NÁHODNÝ TYP PŘEKÁŽKY
+   ========================== */
 
 function randomType() {
+  const types = ["rock", "net", "plant"];
 
-  const types = [
-    "rock",
-    "net",
-    "plant"
-  ];
-
-  return types[
-    Math.floor(
-      Math.random() * types.length
-    )
-  ];
+  return types[Math.floor(Math.random() * types.length)];
 }
 
 
-// ==========================
-// VYTVOŘENÍ PŘEKÁŽKY
-// ==========================
+/* ==========================
+   VYTVOŘENÍ PŘEKÁŽKY
+   ========================== */
 
 function spawn() {
-
   const type = randomType();
 
-
-  // ==========================
-  // SÍŤ MŮŽE PŘEKRÝVAT FOOD
-  // ==========================
+  /*
+     Síť může překrývat food,
+     ostatní překážky ne.
+  */
 
   if (type !== "net") {
+    const template = {
+      rock,
+      plant
+    }[type];
 
-    const obstacleWidth =
-      type === "plant"
-        ? plant.offsetWidth
-        : rock.offsetWidth;
-
-    const obstacleHeight =
-      type === "plant"
-        ? plant.offsetHeight
-        : rock.offsetHeight;
+    const obstacleWidth = template.offsetWidth;
+    const obstacleHeight = template.offsetHeight;
 
     const obstacleBottom =
-      type === "plant"
-        ? parseFloat(
-            getComputedStyle(plant).bottom
-          )
-        : parseFloat(
-            getComputedStyle(rock).bottom
-          );
+      parseFloat(getComputedStyle(template).bottom);
 
     const obstacleTop =
-      obstacleBottom +
-      obstacleHeight;
+      obstacleBottom + obstacleHeight;
 
     const margin = 80;
 
+    const obstacleLeft = 850;
+    const obstacleRight =
+      obstacleLeft + obstacleWidth;
 
-    // ==========================
-    // KONTROLA EXISTUJÍCÍHO FOODU
-    // ==========================
+    /*
+       Kontrola existujícího foodu
+    */
 
     for (const f of foods) {
-
-      const foodLeft =
-        f.position;
-
-      const foodRight =
-        foodLeft + 40;
+      const foodLeft = f.position;
+      const foodRight = foodLeft + 40;
 
       const foodBottom =
-        parseFloat(
-          getComputedStyle(
-            f.element
-          ).bottom
-        );
+        parseFloat(getComputedStyle(f.element).bottom);
 
       const foodTop =
         foodBottom + 40;
 
-
-      const obstacleLeft =
-        850;
-
-      const obstacleRight =
-        obstacleLeft +
-        obstacleWidth;
-
-
       const overlap =
-        obstacleLeft <
-          foodRight + margin &&
-        obstacleRight >
-          foodLeft - margin &&
-        obstacleBottom <
-          foodTop + margin &&
-        obstacleTop >
-          foodBottom - margin;
-
+        obstacleLeft < foodRight + margin &&
+        obstacleRight > foodLeft - margin &&
+        obstacleBottom < foodTop + margin &&
+        obstacleTop > foodBottom - margin;
 
       if (overlap) {
-
         return false;
       }
     }
   }
 
 
-  // ==========================
-  // VYTVOŘENÍ PŘEKÁŽKY
-  // ==========================
+  /* ==========================
+     VYTVOŘENÍ
+     ========================== */
 
   const template = {
     rock,
@@ -213,23 +172,18 @@ function spawn() {
     plant
   }[type];
 
-  const element =
-    template.cloneNode(true);
+  const element = template.cloneNode(true);
 
   element.removeAttribute("id");
-
   element.classList.add(type);
 
-  element.style.left =
-    "850px";
-
-  element.style.transform =
-    "translateX(0px)";
+  element.style.left = "850px";
+  element.style.transform = "translateX(0px)";
 
   game.appendChild(element);
 
   obstacles.push({
-    element: element,
+    element,
     position: 850
   });
 
@@ -237,12 +191,11 @@ function spawn() {
 }
 
 
-// ==========================
-// VYTVOŘENÍ KRMENÍ
-// ==========================
+/* ==========================
+   VYTVOŘENÍ KRMENÍ
+   ========================== */
 
 function spawnFood() {
-
   const count =
     Math.floor(
       Math.random() *
@@ -252,70 +205,38 @@ function spawnFood() {
   const foodSpacing = 35;
 
   let startPosition = 850;
-
-  let bottom =
-    Math.random() < 0.5
-      ? 220
-      : 100;
-
-
-  // ==========================
-  // HLEDÁNÍ BEZPEČNÉ POZICE
-  // ==========================
+  let bottom = Math.random() < 0.5 ? 220 : 100;
 
   let safe = false;
   let attempts = 0;
 
   while (!safe && attempts < 30) {
-
     safe = true;
 
     startPosition =
-      850 +
-      Math.random() * 150;
+      850 + Math.random() * 150;
 
     bottom =
-      Math.random() < 0.5
-        ? 220
-        : 100;
-
-
-    // ==========================
-    // KONTROLA KAŽDÉHO KUSU FOODU
-    // ==========================
+      Math.random() < 0.5 ? 220 : 100;
 
     for (let i = 0; i < count; i++) {
-
       const foodLeft =
-        startPosition +
-        i * foodSpacing;
+        startPosition + i * foodSpacing;
 
       const foodRight =
         foodLeft + 40;
 
-      const foodBottom =
-        bottom;
-
-      const foodTop =
-        bottom + 40;
-
+      const foodBottom = bottom;
+      const foodTop = bottom + 40;
 
       for (const obstacle of obstacles) {
 
-        // Síť může food překrývat
-        if (
-          obstacle.element.classList.contains("net")
-        ) {
+        /* Síť může food překrývat */
+        if (obstacle.element.classList.contains("net")) {
           continue;
         }
 
-
-        // ==========================
-        // POZICE PŘEKÁŽKY
-        // ==========================
-
-        const obstacleLeft =
-          obstacle.position;
+        const obstacleLeft = obstacle.position;
 
         const obstacleRight =
           obstacle.position +
@@ -332,91 +253,64 @@ function spawnFood() {
           obstacleBottom +
           obstacle.element.offsetHeight;
 
-
-        // ==========================
-        // OCHRANNÁ VZDÁLENOST
-        // ==========================
-
         const margin = 80;
 
-
-        // ==========================
-        // KOLIZE
-        // ==========================
-
         const overlap =
-          foodLeft <
-            obstacleRight + margin &&
-          foodRight >
-            obstacleLeft - margin &&
-          foodBottom <
-            obstacleTop + margin &&
-          foodTop >
-            obstacleBottom - margin;
-
+          foodLeft < obstacleRight + margin &&
+          foodRight > obstacleLeft - margin &&
+          foodBottom < obstacleTop + margin &&
+          foodTop > obstacleBottom - margin;
 
         if (overlap) {
-
           safe = false;
-
           break;
         }
       }
 
-
       if (!safe) {
-
         break;
       }
     }
-
 
     attempts++;
   }
 
 
-  // ==========================
-  // VYTVOŘENÍ FOOD
-  // ==========================
+  /* ==========================
+     VYTVOŘENÍ FOOD
+     ========================== */
 
   for (let i = 0; i < count; i++) {
-
-    const element =
-      food.cloneNode(true);
+    const element = food.cloneNode(true);
 
     element.removeAttribute("id");
-
     element.classList.add("food");
 
     const position =
-      startPosition +
-      i * foodSpacing;
+      startPosition + i * foodSpacing;
 
-    element.style.left =
-      "0px";
-
+    element.style.left = "0px";
     element.style.transform =
       `translateX(${position}px)`;
 
     element.style.bottom =
-      bottom + "px";
+      `${bottom}px`;
 
     game.appendChild(element);
 
     foods.push({
-      element: element,
-      position: position
+      element,
+      position
     });
   }
 }
 
 
-// ==========================
-// ZAČÁTEK SKOKU
-// ==========================
+/* ==========================
+   ZAČÁTEK SKOKU
+   ========================== */
 
 function startJump() {
-
   if (
     !started ||
     gameOverState ||
@@ -430,68 +324,52 @@ function startJump() {
   holding = true;
   ascending = true;
 
-  jumpStartTime =
-    performance.now();
-
+  jumpStartTime = performance.now();
   descentStartTime = 0;
 }
 
 
-// ==========================
-// KONEC DRŽENÍ
-// ==========================
+/* ==========================
+   KONEC DRŽENÍ
+   ========================== */
 
 function stopJump() {
-
   holding = false;
 }
 
 
-// ==========================
-// POHYB TERČOVCE
-// ==========================
+/* ==========================
+   POHYB TERČOVCE
+   ========================== */
 
 function updateDiscus(time) {
 
-  // ==========================
-  // SKÓRE
-  // ==========================
+  /* Skóre */
 
   if (
     started &&
     !paused &&
     !gameOverState
   ) {
-
     score =
       Math.floor(
         (time - scoreStartTime) / 1000
       ) + bonusScore;
 
-    scoreDisplay.textContent =
-      score;
+    scoreDisplay.textContent = score;
   }
 
 
-  // ==========================
-  // SKOK
-  // ==========================
+  /* Skok */
 
-  if (
-    !paused &&
-    jumping
-  ) {
-
+  if (!paused && jumping) {
     const elapsed =
       time - jumpStartTime;
 
 
-    // ==========================
-    // STOUPÁNÍ
-    // ==========================
+    /* Stoupání */
 
     if (ascending) {
-
       const progress =
         Math.min(
           elapsed / ascentTime,
@@ -506,34 +384,25 @@ function updateDiscus(time) {
         );
 
       if (progress >= 1) {
-
         ascending = false;
       }
     }
 
 
-    // ==========================
-    // DRŽENÍ NAHOŘE
-    // ==========================
+    /* Držení nahoře */
 
     else if (holding) {
-
       y =
         groundHeight +
         jumpHeight;
     }
 
 
-    // ==========================
-    // KLESÁNÍ
-    // ==========================
+    /* Klesání */
 
     else {
-
       if (!descentStartTime) {
-
-        descentStartTime =
-          time;
+        descentStartTime = time;
       }
 
       const progress =
@@ -551,7 +420,6 @@ function updateDiscus(time) {
         );
 
       if (progress >= 1) {
-
         y = groundHeight;
 
         jumping = false;
@@ -561,23 +429,18 @@ function updateDiscus(time) {
       }
     }
 
-    discus.style.bottom =
-      y + "px";
+    discus.style.bottom = `${y}px`;
   }
 
-  requestAnimationFrame(
-    updateDiscus
-  );
+  requestAnimationFrame(updateDiscus);
 }
 
-requestAnimationFrame(
-  updateDiscus
-);
+requestAnimationFrame(updateDiscus);
 
 
-// ==========================
-// POHYB PŘEKÁŽEK
-// ==========================
+/* ==========================
+   POHYB PŘEKÁŽEK
+   ========================== */
 
 function moveObstacles() {
 
@@ -586,19 +449,13 @@ function moveObstacles() {
     paused ||
     gameOverState
   ) {
-
-    requestAnimationFrame(
-      moveObstacles
-    );
-
+    requestAnimationFrame(moveObstacles);
     return;
   }
 
-  const now =
-    performance.now();
+  const now = performance.now();
 
   if (!lastTime) {
-
     lastTime = now;
   }
 
@@ -608,17 +465,12 @@ function moveObstacles() {
   lastTime = now;
 
 
-  // ==========================
-  // NOVÁ PŘEKÁŽKA
-  // ==========================
+  /* Nová překážka */
 
   if (now >= nextSpawn) {
-
-    const spawned =
-      spawn();
+    const spawned = spawn();
 
     if (spawned) {
-
       nextSpawn =
         now +
         minSpawn +
@@ -628,49 +480,37 @@ function moveObstacles() {
   }
 
 
-  // ==========================
-  // POHYB PŘEKÁŽEK
-  // ==========================
+  /* Pohyb */
 
   obstacles.forEach(o => {
-
-    o.position -=
-      speed * dt;
+    o.position -= speed * dt;
 
     o.element.style.transform =
       `translateX(${o.position - 850}px)`;
   });
 
 
-  // ==========================
-  // ODSTRANĚNÍ STARÝCH
-  // ==========================
+  /* Odstranění starých */
 
   obstacles =
     obstacles.filter(o => {
-
       if (o.position < -400) {
-
         o.element.remove();
-
         return false;
       }
 
       return true;
     });
 
-
-  requestAnimationFrame(
-    moveObstacles
-  );
+  requestAnimationFrame(moveObstacles);
 }
 
 moveObstacles();
 
 
-// ==========================
-// POHYB KRMENÍ
-// ==========================
+/* ==========================
+   POHYB KRMENÍ
+   ========================== */
 
 function moveFood() {
 
@@ -679,19 +519,13 @@ function moveFood() {
     paused ||
     gameOverState
   ) {
-
-    requestAnimationFrame(
-      moveFood
-    );
-
+    requestAnimationFrame(moveFood);
     return;
   }
 
-  const now =
-    performance.now();
+  const now = performance.now();
 
   if (!lastFoodTime) {
-
     lastFoodTime = now;
   }
 
@@ -701,12 +535,9 @@ function moveFood() {
   lastFoodTime = now;
 
 
-  // ==========================
-  // NOVÁ SKUPINKA
-  // ==========================
+  /* Nová skupinka */
 
   if (now >= nextFoodSpawn) {
-
     spawnFood();
 
     nextFoodSpawn =
@@ -716,49 +547,37 @@ function moveFood() {
   }
 
 
-  // ==========================
-  // POHYB KRMENÍ
-  // ==========================
+  /* Pohyb */
 
   foods.forEach(f => {
-
-    f.position -=
-      speed * dt;
+    f.position -= speed * dt;
 
     f.element.style.transform =
       `translateX(${f.position}px)`;
   });
 
 
-  // ==========================
-  // ODSTRANĚNÍ STARÉHO
-  // ==========================
+  /* Odstranění starých */
 
   foods =
     foods.filter(f => {
-
       if (f.position < -100) {
-
         f.element.remove();
-
         return false;
       }
 
       return true;
     });
 
-
-  requestAnimationFrame(
-    moveFood
-  );
+  requestAnimationFrame(moveFood);
 }
 
 moveFood();
 
 
-// ==========================
-// SBÍRÁNÍ KRMENÍ
-// ==========================
+/* ==========================
+   SBÍRÁNÍ KRMENÍ
+   ========================== */
 
 function checkFoodCollision() {
 
@@ -767,60 +586,48 @@ function checkFoodCollision() {
     !paused &&
     !gameOverState
   ) {
-
     const d =
       discus.getBoundingClientRect();
 
-    foods =
-      foods.filter(f => {
+    for (const f of foods) {
+      const r =
+        f.element.getBoundingClientRect();
 
-        const r =
-          f.element.getBoundingClientRect();
+      const overlapX =
+        Math.min(d.right, r.right) -
+        Math.max(d.left, r.left);
 
-        const collision =
-          d.left <= r.right &&
-          d.right >= r.left &&
-          d.top <= r.bottom &&
-          d.bottom >= r.top;
+      const overlapY =
+        Math.min(d.bottom, r.bottom) -
+        Math.max(d.top, r.top);
 
-        if (collision) {
+      if (
+        overlapX >= 3 &&
+        overlapY >= 3
+      ) {
+        f.element.remove();
 
-          bonusScore +=
-            foodValue;
+        foods =
+          foods.filter(
+            item => item !== f
+          );
 
-          score =
-            Math.floor(
-              (
-                performance.now() -
-                scoreStartTime
-              ) / 1000
-            ) + bonusScore;
+        bonusScore += foodValue;
 
-          scoreDisplay.textContent =
-            score;
-
-          f.element.remove();
-
-          return false;
-        }
-
-        return true;
-      });
+        break;
+      }
+    }
   }
 
-  requestAnimationFrame(
-    checkFoodCollision
-  );
+  requestAnimationFrame(checkFoodCollision);
 }
 
-requestAnimationFrame(
-  checkFoodCollision
-);
+requestAnimationFrame(checkFoodCollision);
 
 
-// ==========================
-// KOLIZE
-// ==========================
+/* ==========================
+   KOLIZE
+   ========================== */
 
 function checkCollision() {
 
@@ -829,130 +636,94 @@ function checkCollision() {
     !paused &&
     !gameOverState
   ) {
-
     const d =
       discus.getBoundingClientRect();
 
     for (const o of obstacles) {
-
       const r =
         o.element.getBoundingClientRect();
 
+      const overlapX =
+        Math.min(d.right, r.right) -
+        Math.max(d.left, r.left);
+
+      const overlapY =
+        Math.min(d.bottom, r.bottom) -
+        Math.max(d.top, r.top);
+
       const collision =
-        d.left <= r.right &&
-        d.right >= r.left &&
-        d.top <= r.bottom &&
-        d.bottom >= r.top;
+        overlapX >= 15 &&
+        overlapY >= 10;
 
-      if (collision) {
-
-        if (
-          o.element.classList.contains("rock")
-        ) {
-
-          endGame(
-            "Au! Terčovec narazil do kamene!"
-          );
-        }
-
-        else if (
-          o.element.classList.contains("plant")
-        ) {
-
-          endGame(
-            "Terčovec se schoval mezi rostliny a odmítá vyplout."
-          );
-        }
-
-        else if (
-          o.element.classList.contains("net")
-        ) {
-
-          endGame(
-            "Terčovec je v pasti!"
-          );
-        }
-
-        break;
+      if (!collision) {
+        continue;
       }
+
+      if (o.element.classList.contains("rock")) {
+        endGame(
+          "Au! Terčovec narazil do kamene!"
+        );
+      }
+
+      else if (
+        o.element.classList.contains("plant")
+      ) {
+        endGame(
+          "Terčovec se schoval mezi rostliny a odmítá vyplout."
+        );
+      }
+
+      else if (
+        o.element.classList.contains("net")
+      ) {
+        endGame(
+          "Terčovec je v pasti!"
+        );
+      }
+
+      break;
     }
   }
 
-  requestAnimationFrame(
-    checkCollision
-  );
+  requestAnimationFrame(checkCollision);
 }
 
-requestAnimationFrame(
-  checkCollision
-);
+requestAnimationFrame(checkCollision);
 
 
-// ==========================
-// RESET HRY
-// ==========================
+/* ==========================
+   RESET HRY
+   ========================== */
 
 function reset() {
-
   score = 0;
   bonusScore = 0;
 
+  /* Překážky */
 
-  // ==========================
-  // ODSTRANĚNÍ PŘEKÁŽEK
-  // ==========================
-
-  obstacles.forEach(o => {
-
-    o.element.remove();
-  });
-
+  obstacles.forEach(o => o.element.remove());
   obstacles = [];
 
+  /* Food */
 
-  // ==========================
-  // ODSTRANĚNÍ KRMENÍ
-  // ==========================
-
-  foods.forEach(f => {
-
-    f.element.remove();
-  });
-
+  foods.forEach(f => f.element.remove());
   foods = [];
-
 
   nextFoodSpawn =
     performance.now() + 900;
 
+  /* Šablony */
 
-  // ==========================
-  // SKRYTÍ ŠABLON
-  // ==========================
+  rock.style.left = "-1000px";
+  net.style.left = "-1000px";
+  plant.style.left = "-1000px";
 
-  rock.style.left =
-    "-1000px";
-
-  net.style.left =
-    "-1000px";
-
-  plant.style.left =
-    "-1000px";
-
-
-  // ==========================
-  // TERČOVEC
-  // ==========================
+  /* Terčovec */
 
   y = groundHeight;
+  discus.style.bottom = `${y}px`;
 
-  discus.style.bottom =
-    y + "px";
-
-
-  // ==========================
-  // SKOK
-  // ==========================
+  /* Skok */
 
   jumping = false;
   holding = false;
@@ -961,35 +732,25 @@ function reset() {
   jumpStartTime = 0;
   descentStartTime = 0;
 
-
-  // ==========================
-  // PRVNÍ PŘEKÁŽKA
-  // ==========================
+  /* První překážka */
 
   nextSpawn =
     performance.now() + 1000;
 
+  /* Časovače */
 
-  // ==========================
-  // ČASOVAČE
-  // ==========================
-
-  lastTime =
-    performance.now();
-
-  lastFoodTime =
-    performance.now();
+  lastTime = performance.now();
+  lastFoodTime = performance.now();
 }
 
 
-// ==========================
-// GAME OVER
-// ==========================
+/* ==========================
+   GAME OVER
+   ========================== */
 
 function endGame(message) {
 
   if (gameOverState) {
-
     return;
   }
 
@@ -998,84 +759,47 @@ function endGame(message) {
   jumping = false;
   holding = false;
 
-
-  // ==========================
-  // ULOŽENÍ SKÓRE
-  // ==========================
-
-  const finalScore =
-    score;
+  const finalScore = score;
 
 
-  // ==========================
-  // ODSTRANĚNÍ OBJEKTŮ
-  // ==========================
+  /* Odstranění objektů */
 
-  obstacles.forEach(o => {
-
-    o.element.remove();
-  });
-
+  obstacles.forEach(o => o.element.remove());
   obstacles = [];
 
-
-  foods.forEach(f => {
-
-    f.element.remove();
-  });
-
+  foods.forEach(f => f.element.remove());
   foods = [];
 
 
-  // ==========================
-  // GAME OVER OBRAZOVKA
-  // ==========================
+  /* Game over obrazovka */
 
-  startScreen.style.display =
-    "flex";
+  startScreen.style.display = "flex";
 
   const gameTitle =
     document.querySelector(".gameTitle");
 
-  gameTitle.textContent =
-    "GAME OVER";
+  gameTitle.textContent = "GAME OVER";
+  gameTitle.classList.add("gameOver");
 
-  gameTitle.classList.add(
-    "gameOver"
-  );
-
-
-  document.querySelector(
-    ".gameSubtitle"
-  ).style.display =
-    "none";
-
+  document.querySelector(".gameSubtitle")
+    .style.display = "none";
 
   gameOverScore.textContent =
     "SKÓRE: " + finalScore;
 
-  gameOverScore.style.display =
-    "block";
-
+  gameOverScore.style.display = "block";
 
   alert(message);
 
-
-  playButton.textContent =
-    "HRÁT ZNOVU";
-
-
-  // ==========================
-  // STAV HRY
-  // ==========================
+  playButton.textContent = "HRÁT ZNOVU";
 
   started = false;
 }
 
 
-// ==========================
-// PAUZA
-// ==========================
+/* ==========================
+   PAUZA
+   ========================== */
 
 function togglePause() {
 
@@ -1083,34 +807,27 @@ function togglePause() {
     !started ||
     gameOverState
   ) {
-
     return;
   }
 
   paused = !paused;
 
+  if (paused) {
+    pauseButton.innerHTML =
+      '<span class="playIcon"></span>';
 
-if (paused) {
-
-  pauseButton.innerHTML =
-    '<span class="playIcon"></span>';
-
-  pauseButton.setAttribute(
-    "aria-label",
-    "Pokračovat"
-  );
-}
+    pauseButton.setAttribute(
+      "aria-label",
+      "Pokračovat"
+    );
+  }
 
   else {
-
-    lastTime =
-      performance.now();
-
-    lastFoodTime =
-      performance.now();
+    lastTime = performance.now();
+    lastFoodTime = performance.now();
 
     pauseButton.innerHTML =
-  '<span class="pauseIcon"></span>';
+      '<span class="pauseIcon"></span>';
 
     pauseButton.setAttribute(
       "aria-label",
@@ -1120,9 +837,9 @@ if (paused) {
 }
 
 
-// ==========================
-// KLÁVESNICE
-// ==========================
+/* ==========================
+   KLÁVESNICE
+   ========================== */
 
 document.addEventListener(
   "keydown",
@@ -1131,16 +848,13 @@ document.addEventListener(
     if (event.code === "Space") {
 
       if (!event.repeat) {
-
         startJump();
       }
 
       event.preventDefault();
     }
 
-
     if (event.code === "KeyP") {
-
       togglePause();
     }
   }
@@ -1152,30 +866,25 @@ document.addEventListener(
   event => {
 
     if (event.code === "Space") {
-
       stopJump();
     }
   }
 );
 
 
-// ==========================
-// MOBIL
-// ==========================
+/* ==========================
+   MOBIL
+   ========================== */
 
 document.addEventListener(
   "touchstart",
   event => {
 
     if (
-      event.target.closest(
-        "#playButton"
-      ) ||
-      event.target.closest(
-        "#pauseButton"
-      )
+      event.target.closest("#playButton") ||
+      event.target.closest("#pauseButton") ||
+      event.target.closest("#fullscreenButton")
     ) {
-
       return;
     }
 
@@ -1184,7 +893,6 @@ document.addEventListener(
       gameOverState ||
       paused
     ) {
-
       return;
     }
 
@@ -1203,14 +911,10 @@ document.addEventListener(
   event => {
 
     if (
-      event.target.closest(
-        "#playButton"
-      ) ||
-      event.target.closest(
-        "#pauseButton"
-      )
+      event.target.closest("#playButton") ||
+      event.target.closest("#pauseButton") ||
+      event.target.closest("#fullscreenButton")
     ) {
-
       return;
     }
 
@@ -1224,9 +928,9 @@ document.addEventListener(
 );
 
 
-// ==========================
-// PAUZA TLAČÍTKEM
-// ==========================
+/* ==========================
+   PAUZA TLAČÍTKEM
+   ========================== */
 
 pauseButton.addEventListener(
   "click",
@@ -1234,61 +938,42 @@ pauseButton.addEventListener(
 );
 
 
-// ==========================
-// PLAY
-// ==========================
+/* ==========================
+   PLAY
+   ========================== */
 
 playButton.addEventListener(
   "click",
-  function(event) {
+  event => {
 
     event.preventDefault();
     event.stopPropagation();
-
-
-    // ==========================
-    // NOVÁ HRA
-    // ==========================
 
     started = true;
     gameOverState = false;
     paused = false;
 
 
-    // ==========================
-    // OBNOVENÍ START OBRAZOVKY
-    // ==========================
+    /* Obnovení titulku */
 
     const gameTitle =
       document.querySelector(".gameTitle");
 
     gameTitle.innerHTML =
-      '<span class="reallText">ReAll</span><span class="runText"> Run</span>';
+      '<span class="reallText">ReAll</span><span class="runText"> run</span>';
 
-    gameTitle.classList.remove(
-      "gameOver"
-    );
+    gameTitle.classList.remove("gameOver");
 
+    document.querySelector(".gameSubtitle")
+      .style.display = "block";
 
-    document.querySelector(
-      ".gameSubtitle"
-    ).style.display =
-      "block";
+    gameOverScore.textContent = "";
+    gameOverScore.style.display = "none";
 
 
-    gameOverScore.textContent =
-      "";
-
-    gameOverScore.style.display =
-      "none";
-
-
-    // ==========================
-    // RESET
-    // ==========================
+    /* Reset */
 
     reset();
-
 
     score = 0;
     bonusScore = 0;
@@ -1296,16 +981,13 @@ playButton.addEventListener(
     scoreStartTime =
       performance.now();
 
-    scoreDisplay.textContent =
-      "0";
+    scoreDisplay.textContent = "0";
 
 
-    // ==========================
-    // PAUZA
-    // ==========================
+    /* Pauza */
 
     pauseButton.innerHTML =
-  '<span class="pauseIcon"></span>';
+      '<span class="pauseIcon"></span>';
 
     pauseButton.setAttribute(
       "aria-label",
@@ -1313,11 +995,146 @@ playButton.addEventListener(
     );
 
 
-    // ==========================
-    // SKRYTÍ START OBRAZOVKY
-    // ==========================
+    /* Skrytí start obrazovky */
 
-    startScreen.style.display =
-      "none";
+    startScreen.style.display = "none";
+  }
+);
+
+
+/* ==========================
+   FULLSCREEN MĚŘÍTKO
+   ========================== */
+
+function updateFullscreenScale() {
+
+  if (!document.fullscreenElement) {
+
+    game.style.removeProperty("--game-scale");
+
+    return;
+  }
+
+
+  const screenWidth =
+    window.innerWidth;
+
+  const screenHeight =
+    window.innerHeight;
+
+
+  /*
+     Vnitřní hra má 800 × 400 px.
+     Border je 4 px na každé straně.
+  */
+
+  const gameOuterWidth =
+    GAME_WIDTH + 8;
+
+  const gameOuterHeight =
+    GAME_HEIGHT + 8;
+
+
+  /*
+     Vypočítáme, kolikrát můžeme
+     hru zvětšit, aby se celá vešla.
+  */
+
+  const scaleX =
+    screenWidth / gameOuterWidth;
+
+  const scaleY =
+    screenHeight / gameOuterHeight;
+
+
+  /*
+     Použijeme menší hodnotu,
+     aby se nic neořízlo.
+  */
+
+  const scale =
+    Math.min(scaleX, scaleY);
+
+
+  game.style.setProperty(
+    "--game-scale",
+    scale
+  );
+}
+
+
+/* ==========================
+   FULLSCREEN
+   ========================== */
+
+fullscreenButton.addEventListener(
+  "click",
+  async function(event) {
+
+    event.preventDefault();
+    event.stopPropagation();
+
+
+    try {
+
+      if (!document.fullscreenElement) {
+
+        await gameViewport.requestFullscreen();
+
+      }
+
+      else {
+
+        await document.exitFullscreen();
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.log(
+        "Fullscreen se nepodařilo změnit:",
+        error
+      );
+
+    }
+
+  }
+);
+
+
+/* ==========================
+   ZMĚNA FULLSCREEN STAVU
+   ========================== */
+
+document.addEventListener(
+  "fullscreenchange",
+  function() {
+
+    /*
+       Po vstupu do fullscreen
+       chvíli počkáme, aby už měl
+       prohlížeč správnou velikost.
+    */
+
+    requestAnimationFrame(
+      updateFullscreenScale
+    );
+
+  }
+);
+
+
+/* ==========================
+   ZMĚNA VELIKOSTI OKNA
+   ========================== */
+
+window.addEventListener(
+  "resize",
+  function() {
+
+    updateFullscreenScale();
+
   }
 );
